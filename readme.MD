@@ -194,7 +194,20 @@ docker run -p 8123:8123 tasks_emulator -host 0.0.0.0 -port 8123 -queue projects/
 ```
 
 ### Docker image
-Or even easier - pull and run it directly from GitHub Container Registry:
+Or even easier - pull and run it directly from Docker Hub:
+```sh
+docker pull harshcasper/cloud-tasks-emulator:latest
+docker run -p 8123:8123 harshcasper/cloud-tasks-emulator:latest -host 0.0.0.0 -port 8123
+```
+
+With REST API support:
+```sh
+docker run -p 8123:8123 -p 8124:8124 harshcasper/cloud-tasks-emulator:latest \
+  -host 0.0.0.0 -port 8123 -http-port 8124 \
+  -queue projects/dev/locations/here/queues/anotherq
+```
+
+Alternatively, pull from GitHub Container Registry:
 ```sh
 docker run ghcr.io/aertje/cloud-tasks-emulator:latest
 ```
@@ -203,10 +216,11 @@ docker run ghcr.io/aertje/cloud-tasks-emulator:latest
 If you are planning on using docker-compose the above configuration translates to :
 ```yml
 gcloud-tasks-emulator:
-  image: ghcr.io/aertje/cloud-tasks-emulator:latest
-  command: -host 0.0.0.0 -port 8123 -queue "projects/dev/locations/here/queues/anotherq"
+  image: harshcasper/cloud-tasks-emulator:latest
+  command: -host 0.0.0.0 -port 8123 -http-port 8124 -queue "projects/dev/locations/here/queues/anotherq"
   ports:
     - "${TASKS_PORT:-8123}:8123"
+    - "${TASKS_HTTP_PORT:-8124}:8124"
   environment:
     APP_ENGINE_EMULATOR_HOST: http://localhost:8080
 ```
