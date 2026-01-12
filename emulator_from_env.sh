@@ -10,6 +10,10 @@ if [ -n "$PORT" ]; then
   RUN_CMD="$RUN_CMD -port=$PORT"
 fi
 
+if [ -n "$HTTP_PORT" ]; then
+  RUN_CMD="$RUN_CMD -http-port=$HTTP_PORT"
+fi
+
 if [ -n "$HARD_RESET_ON_PURGE_QUEUE" ]; then
   RUN_CMD="$RUN_CMD -hard_reset_on_purge_queue=$HARD_RESET_ON_PURGE_QUEUE"
 fi

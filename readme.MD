@@ -14,6 +14,7 @@ It supports the following:
 - Rate limiting and honors rate limiting configuration (max burst, max concurrent, and dispatch rate)
 - Retries and honors retry configuration (max attempts, max doublings, backoff)
 - Self-signed, verifiable, OIDC authentication tokens for HTTP requests
+- **REST API support via gRPC-Gateway** (in addition to gRPC)
 
 It also has a few outstanding things to address;
 - Updating of queues
@@ -48,6 +49,142 @@ Alternatively, you can define environment variables and then run the shell scrip
  ```
 
 Once running, you connect to it using the standard google cloud tasks GRPC libraries.
+
+## REST API Support
+
+In addition to gRPC, the emulator also supports REST/HTTP API via [gRPC-Gateway](https://github.com/grpc-ecosystem/grpc-gateway). This allows you to interact with the emulator using standard HTTP/JSON requests, similar to the official Google Cloud Tasks REST API.
+
+### Enabling REST API
+
+To enable the REST API, specify the `-http-port` flag:
+
+```sh
+go run ./ -host localhost -port 8123 -http-port 8080
+```
+
+This will start:
+- gRPC server on `localhost:8123`
+- REST/HTTP server on `localhost:8080`
+
+### Docker with REST API
+
+```sh
+docker run -p 8123:8123 -p 8080:8080 tasks_emulator -host 0.0.0.0 -port 8123 -http-port 8080
+```
+
+### Docker Compose with REST API
+
+```yml
+gcloud-tasks-emulator:
+  image: ghcr.io/aertje/cloud-tasks-emulator:latest
+  command: -host 0.0.0.0 -port 8123 -http-port 8080 -queue "projects/dev/locations/here/queues/anotherq"
+  ports:
+    - "${TASKS_PORT:-8123}:8123"
+    - "${TASKS_HTTP_PORT:-8080}:8080"
+  environment:
+    APP_ENGINE_EMULATOR_HOST: http://localhost:8080
+```
+
+### REST API Examples
+
+The REST API follows the [Cloud Tasks API v2](https://cloud.google.com/tasks/docs/reference/rest) specification.
+
+**List Queues:**
+```sh
+curl http://localhost:8080/v2/projects/my-project/locations/us-central1/queues
+```
+
+**Create a Queue:**
+```sh
+curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues \
+  -H "Content-Type: application/json" \
+  -d '{"name": "projects/my-project/locations/us-central1/queues/my-queue"}'
+```
+
+**Get a Queue:**
+```sh
+curl http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue
+```
+
+**Create a Task:**
+```sh
+curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": {
+      "httpRequest": {
+        "url": "https://example.com/handler",
+        "httpMethod": "POST",
+        "body": "eyJtZXNzYWdlIjogImhlbGxvIn0="
+      }
+    }
+  }'
+```
+
+**List Tasks:**
+```sh
+curl http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue/tasks
+```
+
+**Delete a Queue:**
+```sh
+curl -X DELETE http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue
+```
+
+**Pause a Queue:**
+```sh
+curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue:pause \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+**Resume a Queue:**
+```sh
+curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue:resume \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Using REST Clients
+
+You can now use any REST client library to interact with the emulator. For example, if you have a package that builds REST clients for GCP APIs, you can point it to the emulator's REST endpoint.
+
+**Python example with requests:**
+```python
+import requests
+import base64
+import json
+
+EMULATOR_URL = "http://localhost:8080"
+PROJECT = "my-project"
+LOCATION = "us-central1"
+QUEUE = "my-queue"
+
+# Create a queue
+queue_path = f"projects/{PROJECT}/locations/{LOCATION}/queues/{QUEUE}"
+response = requests.post(
+    f"{EMULATOR_URL}/v2/projects/{PROJECT}/locations/{LOCATION}/queues",
+    json={"name": queue_path}
+)
+print(response.json())
+
+# Create a task
+task_body = base64.b64encode(json.dumps({"message": "hello"}).encode()).decode()
+response = requests.post(
+    f"{EMULATOR_URL}/v2/{queue_path}/tasks",
+    json={
+        "task": {
+            "httpRequest": {
+                "url": "https://example.com/handler",
+                "httpMethod": "POST",
+                "body": task_body,
+                "headers": {"Content-Type": "application/json"}
+            }
+        }
+    }
+)
+print(response.json())
+```
 
 ### Docker
 You can use the dockerfile if you don't want to install a Go build environment:

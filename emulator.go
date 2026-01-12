@@ -15,6 +15,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
+	"github.com/aertje/cloud-tasks-emulator/gateway"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc"
@@ -364,7 +365,8 @@ func main() {
 	var initialQueues arrayFlags
 
 	host := flag.String("host", "localhost", "The host name")
-	port := flag.String("port", "8123", "The port")
+	port := flag.String("port", "8123", "The gRPC port")
+	httpPort := flag.String("http-port", "", "The REST/HTTP port (optional, enables REST API via gRPC-gateway)")
 	openidIssuer := flag.String("openid-issuer", "", "URL to serve the OpenID configuration on, if required")
 	hardResetOnPurgeQueue := flag.Bool("hard-reset-on-purge-queue", false, "Set to force the 'Purge Queue' call to perform a hard reset of all state (differs from production)")
 
@@ -372,20 +374,23 @@ func main() {
 
 	flag.Parse()
 
+	ctx := context.Background()
+
 	if *openidIssuer != "" {
 		srv, err := configureOpenIdIssuer(*openidIssuer)
 		if err != nil {
 			panic(err)
 		}
-		defer srv.Shutdown(context.Background())
+		defer srv.Shutdown(ctx)
 	}
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", *host, *port))
+	grpcAddress := fmt.Sprintf("%v:%v", *host, *port)
+	lis, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		panic(err)
 	}
 
-	print(fmt.Sprintf("Starting cloud tasks emulator, listening on %v:%v\n", *host, *port))
+	print(fmt.Sprintf("Starting cloud tasks emulator, gRPC listening on %v\n", grpcAddress))
 
 	grpcServer := grpc.NewServer()
 	emulatorServer := NewServer()
@@ -394,6 +399,24 @@ func main() {
 
 	for i := 0; i < len(initialQueues); i++ {
 		createInitialQueue(emulatorServer, initialQueues[i])
+	}
+
+	// Start REST gateway if http-port is specified
+	if *httpPort != "" {
+		httpAddress := fmt.Sprintf("%v:%v", *host, *httpPort)
+		gw := gateway.New(gateway.Options{
+			GatewayAddress: httpAddress,
+			GRPCAddress:    grpcAddress,
+		})
+
+		// Start the REST gateway in a goroutine
+		go func() {
+			if err := gw.Run(ctx); err != nil {
+				print(fmt.Sprintf("REST gateway error: %v\n", err))
+			}
+		}()
+
+		defer gw.Shutdown(ctx)
 	}
 
 	grpcServer.Serve(lis)

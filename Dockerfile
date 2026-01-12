@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine as builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -20,5 +20,7 @@ COPY --from=builder /app/oidc.cert oidc.cert
 COPY --from=builder /app/emulator .
 COPY --from=builder /app/emulator_from_env.sh .
 RUN chmod +x emulator_from_env.sh
+
+EXPOSE 8123 8080
 
 ENTRYPOINT ["./emulator"]
