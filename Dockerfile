@@ -21,6 +21,6 @@ COPY --from=builder /app/emulator .
 COPY --from=builder /app/emulator_from_env.sh .
 RUN chmod +x emulator_from_env.sh
 
-EXPOSE 8123 8080
+EXPOSE 8123 8124
 
 ENTRYPOINT ["./emulator"]

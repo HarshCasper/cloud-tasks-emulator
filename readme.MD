@@ -59,17 +59,17 @@ In addition to gRPC, the emulator also supports REST/HTTP API via [gRPC-Gateway]
 To enable the REST API, specify the `-http-port` flag:
 
 ```sh
-go run ./ -host localhost -port 8123 -http-port 8080
+go run ./ -host localhost -port 8123 -http-port 8124
 ```
 
 This will start:
 - gRPC server on `localhost:8123`
-- REST/HTTP server on `localhost:8080`
+- REST/HTTP server on `localhost:8124`
 
 ### Docker with REST API
 
 ```sh
-docker run -p 8123:8123 -p 8080:8080 tasks_emulator -host 0.0.0.0 -port 8123 -http-port 8080
+docker run -p 8123:8123 -p 8124:8124 tasks_emulator -host 0.0.0.0 -port 8123 -http-port 8124
 ```
 
 ### Docker Compose with REST API
@@ -77,10 +77,10 @@ docker run -p 8123:8123 -p 8080:8080 tasks_emulator -host 0.0.0.0 -port 8123 -ht
 ```yml
 gcloud-tasks-emulator:
   image: ghcr.io/aertje/cloud-tasks-emulator:latest
-  command: -host 0.0.0.0 -port 8123 -http-port 8080 -queue "projects/dev/locations/here/queues/anotherq"
+  command: -host 0.0.0.0 -port 8123 -http-port 8124 -queue "projects/dev/locations/here/queues/anotherq"
   ports:
     - "${TASKS_PORT:-8123}:8123"
-    - "${TASKS_HTTP_PORT:-8080}:8080"
+    - "${TASKS_HTTP_PORT:-8124}:8124"
   environment:
     APP_ENGINE_EMULATOR_HOST: http://localhost:8080
 ```
@@ -91,24 +91,24 @@ The REST API follows the [Cloud Tasks API v2](https://cloud.google.com/tasks/doc
 
 **List Queues:**
 ```sh
-curl http://localhost:8080/v2/projects/my-project/locations/us-central1/queues
+curl http://localhost:8124/v2/projects/my-project/locations/us-central1/queues
 ```
 
 **Create a Queue:**
 ```sh
-curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues \
+curl -X POST http://localhost:8124/v2/projects/my-project/locations/us-central1/queues \
   -H "Content-Type: application/json" \
   -d '{"name": "projects/my-project/locations/us-central1/queues/my-queue"}'
 ```
 
 **Get a Queue:**
 ```sh
-curl http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue
+curl http://localhost:8124/v2/projects/my-project/locations/us-central1/queues/my-queue
 ```
 
 **Create a Task:**
 ```sh
-curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue/tasks \
+curl -X POST http://localhost:8124/v2/projects/my-project/locations/us-central1/queues/my-queue/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "task": {
@@ -123,24 +123,24 @@ curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/
 
 **List Tasks:**
 ```sh
-curl http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue/tasks
+curl http://localhost:8124/v2/projects/my-project/locations/us-central1/queues/my-queue/tasks
 ```
 
 **Delete a Queue:**
 ```sh
-curl -X DELETE http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue
+curl -X DELETE http://localhost:8124/v2/projects/my-project/locations/us-central1/queues/my-queue
 ```
 
 **Pause a Queue:**
 ```sh
-curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue:pause \
+curl -X POST http://localhost:8124/v2/projects/my-project/locations/us-central1/queues/my-queue:pause \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
 **Resume a Queue:**
 ```sh
-curl -X POST http://localhost:8080/v2/projects/my-project/locations/us-central1/queues/my-queue:resume \
+curl -X POST http://localhost:8124/v2/projects/my-project/locations/us-central1/queues/my-queue:resume \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
@@ -155,7 +155,7 @@ import requests
 import base64
 import json
 
-EMULATOR_URL = "http://localhost:8080"
+EMULATOR_URL = "http://localhost:8124"
 PROJECT = "my-project"
 LOCATION = "us-central1"
 QUEUE = "my-queue"
